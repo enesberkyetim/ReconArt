@@ -2,7 +2,7 @@
 
 # --- CONFIGURATION ---
 WORDLIST="$HOME/wordlists/all.txt"
-THREADS_ACTIVE=5000
+THREADS_ACTIVE=1000
 THREADS_HTTPX=50
 RATE_LIMIT_HTTPX=20
 
@@ -33,7 +33,16 @@ setup_folders() {
     fi
 
     echo -e "${CYAN}[*] Extracting unique root domains...${NC}"
-    unique_roots=$(sed -E 's|https?://||; s|/.*||' "$target_file" | grep -Eo '[a-zA-Z0-9-]+\.[a-z]+$' | sort -u)
+    unique_roots=$(sed -E 's|https?://||; s|/.*||' "$target_file" | python3 -c "
+import sys
+import tldextract
+domains = set()
+for line in sys.stdin:
+    ext = tldextract.extract(line.strip())
+    if ext.domain and ext.suffix:
+        domains.add(f'{ext.domain}.{ext.suffix}')
+print('\n'.join(sorted(domains)))
+")
 
     for root_domain in $unique_roots; do
         dir="roots/root_$root_domain"
@@ -158,61 +167,42 @@ pre_recon() {
     echo -e "${WHITE}1)${NC} Discover by Organization Name (Amass Intel)"
     echo -e "${WHITE}2)${NC} Discover by ASN (Amass Intel)"
     echo -e "${WHITE}3)${NC} Import Manual List"
-    echo -e "${WHITE}4)${NC} Shodan SSL/Hostname Hunt" # Yeni Seçenek
-    echo -e "${WHITE}5)${NC} Shodan org/Hostname Hunt"
-    echo -e "${WHITE}6)${NC} Shodan ASN/Hostname Hunt"
+    echo -e "${WHITE}4)${NC} Shodan SSL/Hostname Hunt (Multi)"
+    echo -e "${WHITE}5)${NC} Shodan Org/Hostname Hunt (Multi)"
+    echo -e "${WHITE}6)${NC} Shodan ASN/Hostname Hunt (Multi)"
     echo -e "${WHITE}7)${NC} Back to Main Menu"
     read -p "Selection [1-7]: " intel_choice
 
     case $intel_choice in
-        1)
-            read -p "Enter Organization Name: " org_name
-            amass intel -org "$org_name" | anew seeds.txt
+        1) read -p "Enter Organization Name: " org_name; amass intel -org "$org_name" | anew seeds.txt ;;
+        2) read -p "Enter ASN: " asn_num; amass intel -asn "$asn_num" | anew seeds.txt ;;
+        3) read -p "Enter path to manual list: " manual_path; [[ -f "$manual_path" ]] && cat "$manual_path" | sed -E 's|https?://||; s|/.*||' | grep -Eo '[a-zA-Z0-9-]+\.[a-z]+$' | anew seeds.txt ;;
+        4|5|6)
+            case $intel_choice in
+                4) read -p "Enter SSL target(s) (comma separated): " targets; filter="ssl" ;;
+                5) read -p "Enter Org target(s) (comma separated): " targets; filter="org" ;;
+                6) read -p "Enter ASN target(s) (comma separated): " targets; filter="asn" ;;
+            esac
+
+            IFS=',' read -ra ADDR <<< "$targets"
+            for t in "${ADDR[@]}"; do
+                t=$(echo "$t" | xargs) # Boşlukları temizle
+                echo -e "${CYAN}[*] Searching Shodan for $filter: $t...${NC}"
+
+                # Shodan Arama + Gelişmiş Temizlik Hattı
+                shodan search "$filter":"$t" --fields hostnames | \
+                tr ";" "\n" | \
+                sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | \
+                sed 's/^\*\.//' | \
+                grep -E '^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$' | \
+                sort -u | \
+                anew seeds.txt
+            done
             ;;
-        2)
-            read -p "Enter ASN: " asn_num
-            amass intel -asn "$asn_num" | anew seeds.txt
-            ;;
-        3)
-            read -p "Enter path to manual list: " manual_path
-            [[ -f "$manual_path" ]] && cat "$manual_path" | sed -E 's|https?://||; s|/.*||' | grep -Eo '[a-zA-Z0-9-]+\.[a-z]+$' | anew seeds.txt
-            ;;
-        4)
-            read -p "Enter SSL target (e.g., target.com): " shodan_target
-            echo -e "${CYAN}[*] Searching Shodan for SSL: $shodan_target...${NC}"
-            # Shodan hostnameleri çek, temizle ve seeds.txt'ye ekle
-            shodan search ssl:"$shodan_target" --fields hostnames | \
-    tr ";" "\n" | \
-    sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | \
-    sed 's/^\*\.//' | \
-    grep -E '^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$' | \
-    sort -u | \
-    anew seeds.txt
-            ;;
-        5) read -p "Enter org target (e.g., 'Vodafone Turkey'): " shodan_target
-            echo -e "${CYAN}[*] Searching Shodan for org: $shodan_target...${NC}"
-            # Shodan hostnameleri çek, temizle ve seeds.txt'ye ekle
-            shodan search org:"$shodan_target" --fields hostnames | \
-    tr ";" "\n" | \
-    sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | \
-    sed 's/^\*\.//' | \
-    grep -E '^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$' | \
-    sort -u | \
-    anew seeds.txt ;;
-        6) read -p "Enter ASN target (e.g., 'AS123'): " shodan_target
-            echo -e "${CYAN}[*] Searching Shodan for org: $shodan_target...${NC}"
-            # Shodan hostnameleri çek, temizle ve seeds.txt'ye ekle
-            shodan search asn:"$shodan_target" --fields hostnames | \
-    tr ";" "\n" | \
-    sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | \
-    sed 's/^\*\.//' | \
-    grep -E '^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$' | \
-    sort -u | \
-    anew seeds.txt ;;
         7) return ;;
     esac
 
-    # İstihbarat biter bitmez filtreyi uygula ki seeds.txt tertemiz kalsın
+    # Filtreleme işlemi
     apply_scope_filter
     echo -e "${GREEN}[*] Intelligence gathering & filtering completed.${NC}"
     sleep 2
