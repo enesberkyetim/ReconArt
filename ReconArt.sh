@@ -109,13 +109,13 @@ run_subdomain_enum_active() {
                 # Sadece pasif taramada bulunmayanları ayıkla
                 comm -23 "${d}active.tmp" "${d}subfinder_results.txt" > "${d}active_unique.txt" 2>/dev/null
 
-                apply_scope_filters "${d}active_unique.txt"
+                apply_scope_filter "${d}active_unique.txt"
 
                 if [ -s "${d}active_unique.txt" ]; then
                     local ports="80,81,300,443,591,593,832,981,1010,1311,1099,2082,2095,2096,2480,3000,3128,3333,4243,4443,4444,4567,4711,4712,4993,5000,5104,5108,5280,5281,5601,5800,6543,7000,7001,7396,7474,8000,8001,8008,8014,8042,8060,8069,8080,8081,8083,8088,8090,8091,8095,8118,8123,8172,8181,8222,8243,8280,8281,8333,8337,8443,8444,8500,8800,8834,8880,8881,8888,8983,9000,9001,9043,9060,9080,9090,9091,9200,9443,9502,9800,9981,10000,10250,11371,12443,15672,16080,17778,18091,18092,20720,27201,32000,55440,55672"
                     echo -e "${GREEN}[+] Unique subdomains found! Probing...${NC}"
                     httpx -l "${d}active_unique.txt" -timeout 10 -max-time 20 -td -sc -title -server -random-agent -ports "$ports" -rl $RATE_LIMIT_HTTPX -t $THREADS_HTTPX -o "${d}httpx_live_active.txt" -silent
-                    apply_scope_filters "${d}httpx_live_active.txt"
+                    apply_scope_filter "${d}httpx_live_active.txt"
                 fi
                 mv "${d}active.tmp" "${d}active_results.txt"
             else
@@ -145,9 +145,9 @@ run_subdomain_enum_passive() {
                 echo -e "${WHITE}[>] Subfinder done, starting httpx...${NC}"
                 if httpx -l "${d}subfinder.tmp" -td -sc -title -server -random-agent -rl $RATE_LIMIT_HTTPX -t $THREADS_HTTPX -silent -timeout 10 -o "${d}httpx.tmp"; then
                     mv "${d}httpx.tmp" "${d}httpx_live.txt"
-                    apply_scope_filters "${d}httpx_live.txt"
+                    apply_scope_filter "${d}httpx_live.txt"
                     mv "${d}subfinder.tmp" "${d}subfinder_results.txt"
-                    apply_scope_filters "${d}subfinder_results.txt"
+                    apply_scope_filter "${d}subfinder_results.txt"
                     echo -e "${GREEN}[+] $target finished successfully.${NC}"
                 else
                     rm -f "${d}httpx.tmp"
@@ -274,24 +274,22 @@ analyze_results() {
 }
 
 apply_scope_filter() {
-    # Eğer parametre verilmezse varsayılan olarak seeds.txt kullan
     local target_file=${1:-"seeds.txt"}
     
     if [[ ! -f "in_scope.txt" ]]; then
-        echo -e "${RED}[!] Error: in_scope.txt not found. Filtering skipped!${NC}"
+        echo -e "${RED}[!] Warning: in_scope.txt not found. Filtering skipped!${NC}"
         return
     fi
 
-    # 1. ADIM: Sadece In-Scope listesindeki kalıplara uyanları tut
+    # 1. ADIM: Sadece In-Scope olanları tut
     grep -i -f in_scope.txt "$target_file" > "${target_file}.filtered"
 
-    # 2. ADIM: Eğer Out-of-Scope dosyası varsa onları temizle
+    # 2. ADIM: Out-of-Scope olanları temizle
     if [[ -f "out_of_scope.txt" ]]; then
         grep -vi -f out_of_scope.txt "${target_file}.filtered" > "$target_file"
     else
         mv "${target_file}.filtered" "$target_file"
     fi
-
     rm -f "${target_file}.filtered"
 }
 
