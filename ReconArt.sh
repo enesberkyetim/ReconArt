@@ -101,7 +101,7 @@ run_subdomain_enum_active() {
 
         echo -e "${CYAN}[*] Scaling Active Recon: $target${NC}"
 
-        if shuffledns -d "$target" -w "$WORDLIST" -r resolvers.txt -t $THREADS_ACTIVE -m $(which massdns) -silent -o "${d}active.tmp"; then
+        if timeout 120m shuffledns -d "$target" -w "$WORDLIST" -r resolvers.txt -t $THREADS_ACTIVE -m $(which massdns) -silent -o "${d}active.tmp"; then
             if [ -s "${d}active.tmp" ]; then
                 # comm komutu için dosyalar sıralanmalı
                 sort -u "${d}active.tmp" -o "${d}active.tmp"
@@ -137,7 +137,7 @@ run_subdomain_enum_passive() {
 
         echo -e "${CYAN}[*] Processing: $target${NC}"
 
-        if subfinder -dL "${d}subdomains.txt" -all -timeout 10 -silent -recursive -o "${d}subfinder.tmp"; then
+        if timeout 180m subfinder -dL "${d}subdomains.txt" -all -timeout 10 -silent -recursive -o "${d}subfinder.tmp"; then
             if [ -s "${d}subfinder.tmp" ]; then
                 echo -e "${WHITE}[>] Subfinder done, starting httpx...${NC}"
                 if httpx -l "${d}subfinder.tmp" -td -sc -title -server -random-agent -rl $RATE_LIMIT_HTTPX -t $THREADS_HTTPX -silent -timeout 10 -o "${d}httpx.tmp"; then
