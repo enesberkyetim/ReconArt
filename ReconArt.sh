@@ -122,7 +122,7 @@ run_subdomain_enum_active() {
         fi
         
     done
-    analyze_results
+    analyze_results "$d"
     echo -e "${GREEN}[*] Active enumeration finished.${NC}"
     sleep 2
 }
@@ -157,7 +157,7 @@ run_subdomain_enum_passive() {
         fi
         
     done
-    analyze_results
+    analyze_results "$d"
 }
 
 recon_menu() {
@@ -236,22 +236,30 @@ send_telegram() {
 }
 
 analyze_results() {
-    echo -e "${YELLOW}[*] Sifting for high-value targets...${NC}"
+    # Eğer parametre varsa sadece o klasöre bak, yoksa hepsine bak
+    local target_dir=${1:-"roots/*/"}
+    
     report_file="priority_targets.txt"
-    echo -e "--- PRIORITY REPORT ($(date)) ---" > "$report_file"
+    # priority_targets.txt yoksa oluştur
+    touch "$report_file"
+
     keywords="admin|dashboard|config|setup|internal|test|dev|jenkins|grafana|phpinfo|debug|env"
 
-    for d in roots/*/; do
-        live_file="${d}httpx_live.txt"
-        if [[ -f "$live_file" ]]; then
-            grep -iE "$keywords" "$live_file" | while read -r line; do
-                echo -e "${RED}[CRITICAL]${NC} $line" | tee -a "$report_file"
-                send_telegram "🚨 *TARGET:* %0A$line"
-            done
-        fi
+    for d in $target_dir; do
+        # Hem pasif hem aktif httpx sonuçlarını kontrol et
+        for live_file in "${d}httpx_live.txt" "${d}httpx_live_active.txt"; do
+            if [[ -f "$live_file" ]]; then
+                grep -iE "$keywords" "$live_file" | while read -r line; do
+                    # Mükerrer kontrolü: Eğer bu satır daha önce raporlanmadıysa
+                    if ! grep -q "$line" "$report_file"; then
+                        echo "$line" >> "$report_file"
+                        send_telegram "🚨 *NEW CRITICAL TARGET:* %0A$line"
+                        echo -e "${RED}[CRITICAL]${NC} $line"
+                    fi
+                done
+            fi
+        done
     done
-    echo -e "${GREEN}[+] Analysis completed. Results in priority_targets.txt${NC}"
-    read -p "Press Enter to review..." ; less -R "$report_file"
 }
 
 apply_scope_filter() {
