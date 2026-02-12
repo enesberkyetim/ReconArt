@@ -137,7 +137,7 @@ run_subdomain_enum_passive() {
 
         echo -e "${CYAN}[*] Processing: $target${NC}"
 
-        if timeout 15m subfinder -dL "${d}subdomains.txt" -all -silent -recursive -o "${d}subfinder.tmp"; then
+        if subfinder -dL "${d}subdomains.txt" -all -timeout 10 -silent -recursive -o "${d}subfinder.tmp"; then
             if [ -s "${d}subfinder.tmp" ]; then
                 echo -e "${WHITE}[>] Subfinder done, starting httpx...${NC}"
                 if httpx -l "${d}subfinder.tmp" -td -sc -title -server -random-agent -rl $RATE_LIMIT_HTTPX -t $THREADS_HTTPX -silent -timeout 10 -o "${d}httpx.tmp"; then
