@@ -8,12 +8,6 @@ THREADS_HTTPX=50
 RATE_LIMIT_HTTPX=20
 BOT_TOKEN="$TELEGRAM_API_TOKEN"
 CHAT_ID="$TELEGRAM_CHAT_TOKEN"
-
-if [[ -z "$BOT_TOKEN" || -z "$CHAT_ID" ]]; then
-    echo -e "${RED}[!] Error: Telegram credentials not found in .bashrc!${NC}"
-fi
-
-# --- COLOR DEFINITIONS ---
 GREEN='\033[0,32m'
 RED='\033[0,31m'
 YELLOW='\033[1,33m'
@@ -21,20 +15,24 @@ CYAN='\033[0,36m'
 NC='\033[0m'
 WHITE='\033[1;37m'
 
+if [[ -z "$BOT_TOKEN" || -z "$CHAT_ID" ]]; then
+    echo -e "${RED}[!] Error: Telegram credentials not found in .bashrc!${NC}"
+fi
+
 banner() {
-echo ""
-
-echo '8888888b.                                           d8888         888
-888   Y88b                                         d88888         888
-888    888                                        d88P888         888
-888   d88P .d88b.   .d8888b .d88b.  88888b.      d88P 888 888d888 888888
-8888888P" d8P  Y8b d88P"   d88""88b 888 "88b    d88P  888 888P"   888
-888 T88b  88888888 888     888  888 888  888   d88P   888 888     888
-888  T88b Y8b.     Y88b.   Y88..88P 888  888  d8888888888 888     Y88b.
-888   T88b "Y8888   "Y8888P "Y88P"  888  888 d88P     888 888      "Y888'
-
-echo ""
-                                                                                                                        
+    clear
+    echo -e "${CYAN}"
+    cat << "EOF"
+ 8888888b.                                           d8888          888
+ 888   Y88b                                         d88888          888
+ 888    888                                        d88P888          888
+ 888   d88P .d88b.  .d8888b .d88b.  88888b.       d88P 888 888d888 888888
+ 8888888P" d8P  Y8b d88P"   d88""88b 888 "88b    d88P  888 888P"    888
+ 888 T88b  88888888 888     888  888 888  888   d88P   888 888      888
+ 888  T88b Y8b.     Y88b.   Y88..88P 888  888  d8888888888 888      Y88b.
+ 888   T88b "Y8888   "Y8888P "Y88P"  888  888 d88P     888 888       "Y888'
+EOF
+    echo -e "${NC}"
 }
 
 setup_folders() {
