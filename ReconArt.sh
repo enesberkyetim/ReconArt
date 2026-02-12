@@ -120,6 +120,7 @@ run_subdomain_enum_active() {
                 touch "${d}active_results.txt"
             fi
         fi
+        analyze_results
     done
     echo -e "${GREEN}[*] Active enumeration finished.${NC}"
     sleep 2
@@ -153,6 +154,7 @@ run_subdomain_enum_passive() {
         else
             rm -f "${d}subfinder.tmp"
         fi
+        analyze_results
     done
 }
 
