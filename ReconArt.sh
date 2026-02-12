@@ -6,8 +6,8 @@ PATTERN_MATCH_WORDLIST="$HOME/wordlists/SecLists/Discovery/DNS/services-names.tx
 THREADS_ACTIVE=1000
 THREADS_HTTPX=50
 RATE_LIMIT_HTTPX=20
-BOT_TOKEN=$TELEGRAM_API_TOKEN 
-CHAT_ID=$TELEGRAM_CHAT_TOKEN 
+BOT_TOKEN="$TELEGRAM_API_TOKEN"
+CHAT_ID="$TELEGRAM_CHAT_TOKEN"
 
 if [[ -z "$BOT_TOKEN" || -z "$CHAT_ID" ]]; then
     echo -e "${RED}[!] Error: Telegram credentials not found in .bashrc!${NC}"
