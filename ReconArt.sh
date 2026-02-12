@@ -5,6 +5,12 @@ WORDLIST="$HOME/wordlists/all.txt"
 THREADS_ACTIVE=1000
 THREADS_HTTPX=50
 RATE_LIMIT_HTTPX=20
+BOT_TOKEN=$TELEGRAM_API_TOKEN 
+CHAT_ID=$TELEGRAM_CHAT_TOKEN 
+
+if [[ -z "$BOT_TOKEN" || -z "$CHAT_ID" ]]; then
+    echo -e "${RED}[!] Error: Telegram credentials not found in .bashrc!${NC}"
+fi
 
 # --- COLOR DEFINITIONS ---
 GREEN='\033[0,32m'
@@ -215,6 +221,33 @@ pre_recon() {
     apply_scope_filter
     echo -e "${GREEN}[*] Intelligence gathering & filtering completed.${NC}"
     sleep 2
+}
+
+send_telegram() {
+    local message=$1
+    curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+         -d "chat_id=$CHAT_ID" \
+         -d "text=$message" \
+         -d "parse_mode=Markdown" > /dev/null
+}
+
+analyze_results() {
+    echo -e "${YELLOW}[*] Sifting for high-value targets...${NC}"
+    report_file="priority_targets.txt"
+    echo -e "--- PRIORITY REPORT ($(date)) ---" > "$report_file"
+    keywords="admin|dashboard|config|setup|internal|test|dev|jenkins|grafana|phpinfo|debug|env"
+
+    for d in roots/*/; do
+        live_file="${d}httpx_live.txt"
+        if [[ -f "$live_file" ]]; then
+            grep -iE "$keywords" "$live_file" | while read -r line; do
+                echo -e "${RED}[CRITICAL]${NC} $line" | tee -a "$report_file"
+                send_telegram "🚨 *TARGET:* %0A$line"
+            done
+        fi
+    done
+    echo -e "${GREEN}[+] Analysis completed. Results in priority_targets.txt${NC}"
+    read -p "Press Enter to review..." ; less -R "$report_file"
 }
 
 apply_scope_filter() {
