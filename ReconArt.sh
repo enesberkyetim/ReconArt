@@ -2,6 +2,7 @@
 
 # --- CONFIGURATION ---
 WORDLIST="$HOME/wordlists/all.txt"
+PATTERN_MATCH_WORDLIST="$HOME/wordlists/SecLists/Discovery/DNS/services-names.txt"
 THREADS_ACTIVE=1000
 THREADS_HTTPX=50
 RATE_LIMIT_HTTPX=20
@@ -243,13 +244,13 @@ analyze_results() {
     # priority_targets.txt yoksa oluştur
     touch "$report_file"
 
-    keywords="admin|dashboard|config|setup|internal|test|dev|jenkins|grafana|phpinfo|debug|env"
+    local patterns=$(paste -sd "|" "$PATTERN_MATCH_WORDLIST")
 
     for d in $target_dir; do
         # Hem pasif hem aktif httpx sonuçlarını kontrol et
         for live_file in "${d}httpx_live.txt" "${d}httpx_live_active.txt"; do
             if [[ -f "$live_file" ]]; then
-                grep -iE "$keywords" "$live_file" | while read -r line; do
+                grep -iE "$patterns" "$live_file" | while read -r line; do
                     # Mükerrer kontrolü: Eğer bu satır daha önce raporlanmadıysa
                     if ! grep -q "$line" "$report_file"; then
                         echo "$line" >> "$report_file"
