@@ -2,7 +2,7 @@
 
 # --- CONFIGURATION ---
 WORDLIST="$HOME/wordlists/all.txt"
-PATTERN_MATCH_WORDLIST="$HOME/wordlists/SecLists/Discovery/DNS/services-names.txt"
+PATTERN_MATCH_WORDLIST="$HOME/wordlists/hq_critical_subdomain_keywords.txt"
 THREADS_ACTIVE=1000
 THREADS_HTTPX=50
 RATE_LIMIT_HTTPX=20
