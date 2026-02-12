@@ -121,9 +121,9 @@ run_subdomain_enum_active() {
                 touch "${d}active_results.txt"
             fi
         fi
-        
+        analyze_results "$d"
     done
-    analyze_results "$d"
+    
     echo -e "${GREEN}[*] Active enumeration finished.${NC}"
     sleep 2
 }
@@ -156,9 +156,9 @@ run_subdomain_enum_passive() {
         else
             rm -f "${d}subfinder.tmp"
         fi
-        
+        analyze_results "$d"
     done
-    analyze_results "$d"
+    
 }
 
 recon_menu() {
@@ -237,24 +237,20 @@ send_telegram() {
 }
 
 analyze_results() {
-    # Eğer parametre varsa sadece o klasöre bak, yoksa hepsine bak
     local target_dir=${1:-"roots/*/"}
-    
     report_file="priority_targets.txt"
-    # priority_targets.txt yoksa oluştur
     touch "$report_file"
 
-    local patterns=$(paste -sd "|" "$PATTERN_MATCH_WORDLIST")
+    echo -e "${YELLOW}[*] Sifting for high-value targets via SecLists...${NC}"
 
     for d in $target_dir; do
-        # Hem pasif hem aktif httpx sonuçlarını kontrol et
         for live_file in "${d}httpx_live.txt" "${d}httpx_live_active.txt"; do
             if [[ -f "$live_file" ]]; then
-                grep -iE "$patterns" "$live_file" | while read -r line; do
-                    # Mükerrer kontrolü: Eğer bu satır daha önce raporlanmadıysa
+                # -f parametresi dosyadan kelimeleri okur, çok daha verimlidir
+                grep -i -f "$PATTERN_MATCH_WORDLIST" "$live_file" | while read -r line; do
                     if ! grep -q "$line" "$report_file"; then
                         echo "$line" >> "$report_file"
-                        send_telegram "🚨 *NEW CRITICAL TARGET:* %0A$line"
+                        send_telegram "🚨 *NEW CRITICAL:* %0A$line"
                         echo -e "${RED}[CRITICAL]${NC} $line"
                     fi
                 done
