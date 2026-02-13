@@ -63,7 +63,7 @@ print('\n'.join(sorted(domains)))
         mkdir -p "$dir"
 
         old_count=$(if [[ -f "$file" ]]; then wc -l < "$file"; else echo 0; fi)
-        grep -w "$root_domain" "$target_file" >> "$file"
+        grep "$root_domain" "$target_file" >> "$file"
         sort -u "$file" -o "$file"
 
         new_count=$(wc -l < "$file")
