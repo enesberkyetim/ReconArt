@@ -250,11 +250,11 @@ analyze_results() {
                 
                 # ADIM 1: Önce canlı sonuçları scope listesine göre filtrele
                 # Sadece in_scope.txt içindeki kalıplara uyanları tutar
-                grep -iE -f in_scope.txt "$live_file" > "${live_file}.filtered"
+                awk '{print $1, $0}' "$live_file" | grep -iE -f in_scope.txt "$live_file" | cut -d' ' -f2- > "${live_file}.filtered"
 
                 # ADIM 2: Eğer out_of_scope.txt varsa onları da temizle
                 if [[ -f "out_of_scope.txt" ]]; then
-                    grep -viE -f out_of_scope.txt "${live_file}.filtered" > "${live_file}.final"
+                    awk '{print $1, $0}' "${live_file}.filtered" | grep -viE -f out_of_scope.txt "${live_file}.filtered" | cut -d' ' -f2- > "${live_file}.final"
                 else
                     mv "${live_file}.filtered" "${live_file}.final"
                 fi
@@ -282,11 +282,11 @@ apply_scope_filter() {
     fi
 
     # 1. ADIM: Sadece In-Scope olanları tut
-    grep -iE -f in_scope.txt "$target_file" > "${target_file}.filtered"
+    awk '{print $1, $0}' "$target_file" | grep -iE -f in_scope.txt "$target_file" | cut -d' ' -f2- > "${target_file}.filtered"
 
     # 2. ADIM: Out-of-Scope olanları temizle
     if [[ -f "out_of_scope.txt" ]]; then
-        grep -viE -f out_of_scope.txt "${target_file}.filtered" > "$target_file"
+        awk '{print $1, $0}' "${target_file}.filtered" | grep -viE -f out_of_scope.txt "${target_file}.filtered" | cut -d' ' -f2- > "$target_file"
     else
         mv "${target_file}.filtered" "$target_file"
     fi
