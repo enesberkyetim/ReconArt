@@ -93,10 +93,10 @@ run_subdomain_enum_active() {
     for d in roots/*/; do
         target=$(basename "$d" | sed 's/root_//')
 
-        if [ -f "${d}active_results.txt" ]; then
-            echo -e "${YELLOW}[!] $target already brute-forced, skipping.${NC}"
-            continue
-        fi
+        #if [ -f "${d}active_results.txt" ]; then
+            #echo -e "${YELLOW}[!] $target already brute-forced, skipping.${NC}"
+            #continue
+        #fi
 
         echo -e "${CYAN}[*] Scaling Active Recon: $target${NC}"
 
@@ -116,6 +116,12 @@ run_subdomain_enum_active() {
                     echo -e "${GREEN}[+] Unique subdomains found! Probing...${NC}"
                     httpx -l "${d}active_unique.txt" -timeout 10 -max-time 20 -td -sc -title -server -random-agent -ports "$ports" -rl $RATE_LIMIT_HTTPX -t $THREADS_HTTPX -o "${d}httpx_live_active.txt" -silent
                     apply_scope_filter "${d}httpx_live_active.txt"
+
+                    if [ -s "${d}active_unique.txt" ]; then
+                        cat "${d}active_unique.txt" >> "${d}subdomains.txt"
+                        sort -u "${d}active_unique.txt" -o "${d}subdomains.txt"
+                        echo -e "${GREEN}[+] Master list updated with active results.${NC}"
+                    fi
                 fi
                 mv "${d}active.tmp" "${d}active_results.txt"
             else
@@ -133,14 +139,14 @@ run_subdomain_enum_passive() {
     for d in roots/*/; do
         target=$(basename "$d" | sed 's/root_//')
 
-        if [ -f "${d}httpx_live.txt" ]; then
-            echo -e "${YELLOW}[!] $target already fully scanned, skipping.${NC}"
-            continue
-        fi
+        #if [ -f "${d}httpx_live.txt" ]; then
+            #echo -e "${YELLOW}[!] $target already fully scanned, skipping.${NC}"
+            #continue
+        #fi
 
         echo -e "${CYAN}[*] Processing: $target${NC}"
 
-        if subfinder -dL "${d}subdomains.txt" -all -timeout 10 -max-time 15 -silent -recursive -o "${d}subfinder.tmp"; then
+        if subfinder -dL "${d}subdomains.txt" -all -timeout 10 -max-time 25 -silent -o "${d}subfinder.tmp"; then
             if [ -s "${d}subfinder.tmp" ]; then
                 echo -e "${WHITE}[>] Subfinder done, starting httpx...${NC}"
                 if httpx -l "${d}subfinder.tmp" -td -sc -title -server -random-agent -rl $RATE_LIMIT_HTTPX -t $THREADS_HTTPX -silent -timeout 10 -o "${d}httpx.tmp"; then
@@ -149,6 +155,12 @@ run_subdomain_enum_passive() {
                     mv "${d}subfinder.tmp" "${d}subfinder_results.txt"
                     apply_scope_filter "${d}subfinder_results.txt"
                     echo -e "${GREEN}[+] $target finished successfully.${NC}"
+
+                    if [ -s "${d}subfinder_results.txt" ]; then
+                        cat "${d}subfinder_results.txt" >> "${d}subdomains.txt"
+                        sort -u "${d}subdomains.txt" -o "${d}subdomains.txt"
+                        echo -e "${GREEN}[+] Master list updated with passive results.${NC}"
+                    fi
                 else
                     rm -f "${d}httpx.tmp"
                 fi
