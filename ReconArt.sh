@@ -119,7 +119,7 @@ run_subdomain_enum_active() {
 
                     if [ -s "${d}active_unique.txt" ]; then
                         cat "${d}active_unique.txt" >> "${d}subdomains.txt"
-                        sort -u "${d}active_unique.txt" -o "${d}subdomains.txt"
+                        sort -u "${d}subdomains.txt" -o "${d}subdomains.txt"
                         echo -e "${GREEN}[+] Master list updated with active results.${NC}"
                     fi
                 fi
