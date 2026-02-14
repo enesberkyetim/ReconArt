@@ -82,6 +82,46 @@ update_resolvers() {
     curl -s https://raw.githubusercontent.com/trickest/resolvers/main/resolvers.txt > resolvers.txt
 }
 
+run_subdomain_permutations() {
+    for d in roots/*/; do
+        target=$(basename "$d" | sed 's/root_//')
+        master_list="${d}subdomains.txt"
+        perm_output="${d}permutations_valid.tmp"
+
+        if [[ ! -s "$master_list" ]]; then
+            echo -e "${YELLOW}[!] $target için subdomain listesi boş, atlanıyor.${NC}"
+            continue
+        fi
+
+        echo -e "${CYAN}[*] Generating permutations for: $target${NC}"
+        
+        # dnsgen ile permütasyon üret ve doğrudan shuffledns'e pasla (Hız için pipe kullanımı)
+        # --fast bayrağı hız kazandırır, wordlist kullanıyorsan dnsgen'e -w ile verebilirsin
+        cat "$master_list" | dnsgen - | \
+        shuffledns -d "$target" -r resolvers.txt -t $THREADS_ACTIVE -m $(which massdns) -silent | \
+        anew "$perm_output"
+
+        if [ -s "$perm_output" ]; then
+            new_count=$(wc -l < "$perm_output")
+            echo -e "${GREEN}[+] Found $new_count new subdomains via permutations!${NC}"
+            
+            # Master listeyi güncelle
+            cat "$perm_output" >> "$master_list"
+            sort -u "$master_list" -o "$master_list"
+            apply_scope_filter "$master_list"
+            
+            # Httpx ile servis kontrolü yap
+            echo -e "${WHITE}[>] Probing new permutation results...${NC}"
+            httpx -l "$perm_output" -td -sc -title -server -random-agent -rl $RATE_LIMIT_HTTPX -t $THREADS_HTTPX -silent -o "${d}httpx_live_permutations.txt"
+            
+            rm "$perm_output"
+        else
+            echo -e "${YELLOW}[-] No new subdomains found via permutations for $target.${NC}"
+        fi
+        analyze_results "$d"
+    done
+}
+
 run_subdomain_enum_active() {
     if [[ ! -f "$WORDLIST" ]]; then
         echo -e "${RED}[!] Error: Wordlist not found at $WORDLIST${NC}"
@@ -120,6 +160,7 @@ run_subdomain_enum_active() {
                     if [ -s "${d}active_unique.txt" ]; then
                         cat "${d}active_unique.txt" >> "${d}subdomains.txt"
                         sort -u "${d}subdomains.txt" -o "${d}subdomains.txt"
+                        apply_scope_filter "${d}subdomains.txt"
                         echo -e "${GREEN}[+] Master list updated with active results.${NC}"
                     fi
                 fi
@@ -159,6 +200,7 @@ run_subdomain_enum_passive() {
                     if [ -s "${d}subfinder_results.txt" ]; then
                         cat "${d}subfinder_results.txt" >> "${d}subdomains.txt"
                         sort -u "${d}subdomains.txt" -o "${d}subdomains.txt"
+                        apply_scope_filter "${d}subdomains.txt"
                         echo -e "${GREEN}[+] Master list updated with passive results.${NC}"
                     fi
                 else
