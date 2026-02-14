@@ -140,7 +140,7 @@ run_subdomain_enum_active() {
 
         echo -e "${CYAN}[*] Scaling Active Recon: $target${NC}"
 
-        if timeout 20m shuffledns -d "$target" -w "$WORDLIST" -r resolvers.txt -t $THREADS_ACTIVE -m $(which massdns) -silent -o "${d}active.tmp"; then
+        if timeout 20m shuffledns -d "$target" -w "$WORDLIST" -mbps 5 -r resolvers.txt -t $THREADS_ACTIVE -m $(which massdns) -silent -o "${d}active.tmp"; then
             if [ -s "${d}active.tmp" ]; then
                 # comm komutu için dosyalar sıralanmalı
                 sort -u "${d}active.tmp" -o "${d}active.tmp"
