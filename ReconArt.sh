@@ -207,8 +207,9 @@ pre_recon() {
     echo -e "${WHITE}4)${NC} Shodan SSL/Hostname Hunt (Multi)"
     echo -e "${WHITE}5)${NC} Shodan Org/Hostname Hunt (Multi)"
     echo -e "${WHITE}6)${NC} Shodan ASN/Hostname Hunt (Multi)"
-    echo -e "${WHITE}7)${NC} Back to Main Menu"
-    read -p "Selection [1-7]: " intel_choice
+    echo -e "${WHITE}7)${NC} crt.sh Discovery"
+    echo -e "${WHITE}8)${NC} Back to Main Menu"
+    read -p "Selection [1-8]: " intel_choice
 
     case $intel_choice in
         1) read -p "Enter Organization Name: " org_name; amass intel -org "$org_name" | anew seeds.txt ;;
@@ -236,7 +237,18 @@ pre_recon() {
                 anew seeds.txt
             done
             ;;
-        7) return ;;
+        7)  if [[ ! -f seeds.txt ]]; then
+                echo -e "${RED}[!] seeds.txt not found. Please run other discovery methods first.${NC}"
+            else
+                echo -e "${CYAN}[*] Expanding attack surface via crt.sh...${NC}"
+                while read -r line; do
+                    [[ -z "$line" ]] && continue
+                    echo -e "${BLUE}[+] Querying: $line${NC}"
+                    curl -s "https://crt.sh/?q=%25.$line&output=json" | jq -r '.[].name_value' 2>/dev/null | sed 's/\*\.//g' | anew seeds.txt
+                done < seeds.txt
+            fi
+            ;;
+        8) return ;;
     esac
 
     # Filtreleme işlemi
