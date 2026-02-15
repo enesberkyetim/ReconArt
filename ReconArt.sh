@@ -238,14 +238,28 @@ pre_recon() {
             done
             ;;
         7)  if [[ ! -f seeds.txt ]]; then
-                echo -e "${RED}[!] seeds.txt not found. Please run other discovery methods first.${NC}"
+                echo -e "${RED}[!] seeds.txt bulunamadı. Önce diğer yöntemleri çalıştırın.${NC}"
             else
-                echo -e "${CYAN}[*] Expanding attack surface via crt.sh...${NC}"
+                echo -e "${CYAN}[*] crt.sh üzerinden attack surface genişletiliyor...${NC}"
+            
+                touch crt_results.tmp
                 while read -r line; do
                     [[ -z "$line" ]] && continue
-                    echo -e "${BLUE}[+] Querying: $line${NC}"
-                    curl -s "https://crt.sh/?q=%25.$line&output=json" | jq -r '.[].name_value' 2>/dev/null | sed 's/\*\.//g' | anew seeds.txt
+                    echo -e "${BLUE}[+] Sorgulanıyor: $line${NC}"
+                    curl -s "https://crt.sh/?q=%25.$line&output=json" | \
+                    jq -r '.[].name_value' 2>/dev/null | \
+                    tr -d '\r' | \
+                    sed 's/\*\.//g' >> crt_results.tmp
+                    sleep 2
                 done < seeds.txt
+                if [[ -s crt_results.tmp ]]; then
+                    cat crt_results.tmp | anew seeds.txt
+                    rm crt_results.tmp
+                    echo -e "${GREEN}[+] Yeni domainler seeds.txt dosyasına eklendi.${NC}"
+                else
+                    echo -e "${YELLOW}[!] Yeni bir sonuç bulunamadı.${NC}"
+                    rm -f crt_results.tmp
+                fi
             fi
             ;;
         8) return ;;
