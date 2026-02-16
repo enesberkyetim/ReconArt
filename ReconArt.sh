@@ -83,7 +83,7 @@ update_resolvers() {
 }
 
 run_content_discovery() {
-    echo -e "${YELLOW}[?] Content Discovery Phase: Searching for endpoints...${NC}"
+    echo -e "${YELLOW}[?] Content Discovery: Searching for endpoints...${NC}"
     
     for d in roots/*/; do
         target=$(basename "$d" | sed 's/root_//')
@@ -91,33 +91,62 @@ run_content_discovery() {
         endpoint_file="${d}endpoints.txt"
 
         if [[ ! -s "$live_file" ]]; then
-            echo -e "${RED}[!] No live targets found for $target, skipping content discovery.${NC}"
+            echo -e "${RED}[!] $target has no live targets, skipping.${NC}"
             continue
         fi
 
-        echo -e "${CYAN}[*] Target: $target - Harvesting URLs (Passive & Active)${NC}"
-
-    
-        cut -d' ' -f1 "$live_file" | gau --threads 10 | anew "$endpoint_file"
-        cut -d' ' -f1 "$live_file" | waybackurls | anew "$endpoint_file"
+        echo -e "${CYAN}[*] Target: $target - Harvesting URLs (Passive + Active)${NC}"
 
         
+        cat "$live_file" | cut -d' ' -f1 | gau --threads 10 | anew "$endpoint_file"
+        cat "$live_file" | cut -d' ' -f1 | waybackurls | anew "$endpoint_file"
         katana -list "$live_file" -kf all -jc -d 3 -silent | anew "$endpoint_file"
 
         
-        if [[ -s "$endpoint_file" ]]; then
-            echo -e "${GREEN}[+] Discovery finished for $target. Results: $(wc -l < "$endpoint_file") endpoints.${NC}"
-            
-           
-            grep -iE "\.php$|\.aspx$|\.js$|\.json$|\.env$|\.git$|redirect=|url=|id=|api/" "$endpoint_file" | while read -r line; do
-                if ! grep -q "$line" "priority_endpoints.txt" 2>/dev/null; then
-                    echo "$line" >> "priority_endpoints.txt"
-                fi
-            done
-        fi
+        run_gf_analysis "$d" "$endpoint_file"
+        run_js_analysis "$d" "$endpoint_file"
     done
-    echo -e "${GREEN}[*] Content discovery for all targets completed.${NC}"
-    sleep 2
+    echo -e "${GREEN}[*] Content discovery and analysis completed.${NC}"
+}
+
+run_gf_analysis() {
+    local d=$1
+    local endpoint_file=$2
+    local params_file="${d}parameters.txt"
+
+    echo -e "${WHITE}[>] Running GF to extract interesting parameters...${NC}"
+    
+    # Tüm parametreli URL'leri ve GF'in 'interest' (ilginç) dediklerini ayıkla
+    cat "$endpoint_file" | grep "=" | anew "$params_file"
+    gf interest "$endpoint_file" 2>/dev/null | anew "$params_file"
+}
+
+run_js_analysis() {
+    local d=$1
+    local endpoint_file=$2
+    local js_links="${d}js_links.txt"
+    local secrets_file="${d}secrets.txt"
+    local js_endpoints="${d}js_endpoints.txt"
+
+    echo -e "${WHITE}[>] Deep JS Analysis starting...${NC}"
+
+    grep "\.js$" "$endpoint_file" | anew "$js_links"
+
+    if [[ -s "$js_links" ]]; then
+        # Hız için ilk 50 JS dosyasına odaklanabilirsin (isteğe bağlı limit)
+        cat "$js_links" | head -n 50 | while read -r js_url; do
+            linkfinder -i "$js_url" -o cli 2>/dev/null | anew "$js_endpoints"
+            
+            # SecretFinder: Token, API Key ve hassas verileri avlar
+            # Not: SecretFinder sisteminde nasıl tanımlıysa ona göre çağır (python3 veya doğrudan)
+            SecretFinder.py -i "$js_url" -o cli 2>/dev/null | anew "$secrets_file"
+        done
+        
+        if [[ -s "$secrets_file" ]]; then
+            local s_count=$(wc -l < "$secrets_file")
+            send_telegram "💎 *JS SECRETS FOUND:* Critical secrets found on $(basename "$d"). Count: $s_count"
+        fi
+    fi
 }
 
 run_subdomain_enum_active() {
