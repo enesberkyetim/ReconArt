@@ -246,7 +246,7 @@ pre_recon() {
                 while read -r line; do
                     [[ -z "$line" ]] && continue
                     echo -e "${BLUE}[+] Sorgulanıyor: $line${NC}"
-                    curl -s --connect-timeout 25 --max-time 35 "https://crt.sh/?q=%25.$line&output=json" | \
+                    curl -s --connect-timeout 25 --max-time 35 --retry 3 "https://crt.sh/?q=%25.$line&output=json" | \
                     jq -r '.[].name_value' 2>/dev/null | \
                     tr -d '\r' | \
                     sed 's/\*\.//g' >> crt_results.tmp
