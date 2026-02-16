@@ -82,6 +82,44 @@ update_resolvers() {
     curl -s https://raw.githubusercontent.com/trickest/resolvers/main/resolvers.txt > resolvers.txt
 }
 
+run_content_discovery() {
+    echo -e "${YELLOW}[?] Content Discovery Phase: Searching for endpoints...${NC}"
+    
+    for d in roots/*/; do
+        target=$(basename "$d" | sed 's/root_//')
+        live_file="${d}httpx_live.txt"
+        endpoint_file="${d}endpoints.txt"
+
+        if [[ ! -s "$live_file" ]]; then
+            echo -e "${RED}[!] No live targets found for $target, skipping content discovery.${NC}"
+            continue
+        fi
+
+        echo -e "${CYAN}[*] Target: $target - Harvesting URLs (Passive & Active)${NC}"
+
+    
+        cut -d' ' -f1 "$live_file" | gau --threads 10 | anew "$endpoint_file"
+        cut -d' ' -f1 "$live_file" | waybackurls | anew "$endpoint_file"
+
+        
+        katana -list "$live_file" -kf all -jc -d 3 -silent | anew "$endpoint_file"
+
+        
+        if [[ -s "$endpoint_file" ]]; then
+            echo -e "${GREEN}[+] Discovery finished for $target. Results: $(wc -l < "$endpoint_file") endpoints.${NC}"
+            
+           
+            grep -iE "\.php$|\.aspx$|\.js$|\.json$|\.env$|\.git$|redirect=|url=|id=|api/" "$endpoint_file" | while read -r line; do
+                if ! grep -q "$line" "priority_endpoints.txt" 2>/dev/null; then
+                    echo "$line" >> "priority_endpoints.txt"
+                fi
+            done
+        fi
+    done
+    echo -e "${GREEN}[*] Content discovery for all targets completed.${NC}"
+    sleep 2
+}
+
 run_subdomain_enum_active() {
     if [[ ! -f "$WORDLIST" ]]; then
         echo -e "${RED}[!] Error: Wordlist not found at $WORDLIST${NC}"
@@ -102,11 +140,11 @@ run_subdomain_enum_active() {
 
         if timeout 20m shuffledns -d "$target" -w "$WORDLIST" -mbps 5 -r resolvers.txt -t $THREADS_ACTIVE -m $(which massdns) -silent -o "${d}active.tmp"; then
             if [ -s "${d}active.tmp" ]; then
-                # comm komutu için dosyalar sıralanmalı
+                
                 sort -u "${d}active.tmp" -o "${d}active.tmp"
                 sort -u "${d}subfinder_results.txt" -o "${d}subfinder_results.txt" 2>/dev/null
 
-                # Sadece pasif taramada bulunmayanları ayıkla
+                
                 comm -23 "${d}active.tmp" "${d}subfinder_results.txt" > "${d}active_unique.txt" 2>/dev/null
 
                 apply_scope_filter "${d}active_unique.txt"
@@ -183,17 +221,19 @@ recon_menu() {
         banner
         echo -e "${WHITE}1)${NC} Subdomain Enumeration (Passive)"
         echo -e "${WHITE}2)${NC} Subdomain Enumeration (Active/Brute)"
-        echo -e "${WHITE}3)${NC} Clear Workspaces"
-        echo -e "${WHITE}4)${NC} Back to Main Menu"
+        echo -e "${WHITE}3)${NC} Content Discovery (GAU, Wayback, Katana)"
+        echo -e "${WHITE}4)${NC} Clear Workspaces"
+        echo -e "${WHITE}5)${NC} Back to Main Menu"
         echo "-----------------------------------------------"
-        read -p "Selection [1-4]: " choice
+        read -p "Selection [1-5]: " choice
 
         case $choice in
             1) run_subdomain_enum_passive ;;
             2) run_subdomain_enum_active ;;
-            3) read -p "Delete all data in roots/? (y/N): " confirm
+            3) run_content_discovery ;;
+            4) read -p "Delete all data in roots/? (y/N): " confirm
                [[ $confirm == [yY] ]] && rm -rf roots/* && echo "Cleared." || echo "Aborted." ; sleep 2 ;;
-            4) return ;;
+            5) return ;;
             *) echo -e "${RED}[!] Invalid selection!${NC}" ; sleep 2 ;;
         esac
     done
