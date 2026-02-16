@@ -116,7 +116,7 @@ run_gf_analysis() {
 
     echo -e "${WHITE}[>] Running GF to extract interesting parameters...${NC}"
     
-    # Tüm parametreli URL'leri ve GF'in 'interest' (ilginç) dediklerini ayıkla
+   
     cat "$endpoint_file" | grep "=" | anew "$params_file"
     gf interestingparams "$endpoint_file" 2>/dev/null | anew "$params_file"
     gf interestingEXT "$endpoint_file" 2>/dev/null | anew "$params_file"
@@ -134,12 +134,11 @@ run_js_analysis() {
     grep "\.js$" "$endpoint_file" | anew "$js_links"
 
     if [[ -s "$js_links" ]]; then
-        # Hız için ilk 50 JS dosyasına odaklanabilirsin (isteğe bağlı limit)
+        
         cat "$js_links" | head -n 50 | while read -r js_url; do
             linkfinder -i "$js_url" -o cli 2>/dev/null | anew "$js_endpoints"
             
-            # SecretFinder: Token, API Key ve hassas verileri avlar
-            # Not: SecretFinder sisteminde nasıl tanımlıysa ona göre çağır (python3 veya doğrudan)
+            
             SecretFinder.py -i "$js_url" -o cli 2>/dev/null | anew "$secrets_file"
         done
         
