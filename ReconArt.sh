@@ -118,7 +118,8 @@ run_gf_analysis() {
     
     # Tüm parametreli URL'leri ve GF'in 'interest' (ilginç) dediklerini ayıkla
     cat "$endpoint_file" | grep "=" | anew "$params_file"
-    gf interest "$endpoint_file" 2>/dev/null | anew "$params_file"
+    gf interestingparams "$endpoint_file" 2>/dev/null | anew "$params_file"
+    gf interestingEXT "$endpoint_file" 2>/dev/null | anew "$params_file"
 }
 
 run_js_analysis() {
