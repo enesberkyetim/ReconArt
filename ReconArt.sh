@@ -419,7 +419,7 @@ menu() {
             2) recon_menu ;;
             3) banner
                echo -e "${CYAN}--- ALL LIVE TARGETS (Passive + Active) ---${NC}"
-               find roots/ -name "httpx_live*.txt" -exec cat {} + | sort -u | less ;;
+               find roots/ -name "httpx_live*.txt" -exec cat {} + | sort -u | less; find roots/ -name "httpx_live*.txt" -exec cat {} + | sort -u > all_live_targets.txt;;
             4) echo -e "${YELLOW}Shutting down Headquarters...${NC}"; exit 0 ;;
             *) echo -e "${RED}[!] Invalid selection!${NC}" ; sleep 2 ;;
         esac
