@@ -214,10 +214,10 @@ run_subdomain_enum_passive() {
 
         echo -e "${CYAN}[*] Processing: $target${NC}"
 
-        if subfinder -dL "${d}subdomains.txt" -all -timeout 10 -max-time 25 -silent -o "${d}subfinder.tmp"; then
+        if subfinder -dL "${d}subdomains.txt" -recursive -all -timeout 5 -max-time 15 -silent -t 100 -o "${d}subfinder.tmp"; then
             if [ -s "${d}subfinder.tmp" ]; then
                 echo -e "${WHITE}[>] Subfinder done, starting httpx...${NC}"
-                if httpx -l "${d}subfinder.tmp" -td -sc -title -server -random-agent -rl $RATE_LIMIT_HTTPX -t $THREADS_HTTPX -silent -timeout 10 -o "${d}httpx.tmp"; then
+                if httpx -l "${d}subfinder.tmp" -td -sc -follow-host-redirects -title -server -random-agent -rl $RATE_LIMIT_HTTPX -t $THREADS_HTTPX -silent -timeout 10 -o "${d}httpx.tmp"; then
                     mv "${d}httpx.tmp" "${d}httpx_live.txt"
                     apply_scope_filter "${d}httpx_live.txt"
                     mv "${d}subfinder.tmp" "${d}subfinder_results.txt"
