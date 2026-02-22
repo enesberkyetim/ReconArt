@@ -321,12 +321,19 @@ pre_recon() {
                     sed 's/\*\.//g' >> crt_results.tmp
                     sleep 2
                 done < seeds.txt
-                if [[ -s crt_results.tmp ]]; then
-                    cat crt_results.tmp | anew seeds.txt
-                    rm crt_results.tmp
-                    echo -e "${GREEN}[+] Yeni domainler seeds.txt dosyasına eklendi.${NC}"
+               if [[ -s crt_results.tmp ]]; then
+                    puredns resolve crt_results.tmp -r resolvers.txt -w crt_resolved.tmp -q 2>/dev/null
+                    if [[ -s crt_resolved.tmp ]]; then
+                        grep -v '^\*' crt_resolved.tmp | \
+                        grep -E '^([a-z0-9-]+\.)+[a-z]{2,}$' | \
+                        anew seeds.txt
+                        echo -e "${GREEN}[+] New domains have been added to seeds.txt.${NC}"
+                     else
+                        echo -e "${YELLOW}[!] No new findings.${NC}"
+                     fi
+                        rm -f crt_results.tmp crt_resolved.tmp
                 else
-                    echo -e "${YELLOW}[!] Yeni bir sonuç bulunamadı.${NC}"
+                    echo -e "${YELLOW}[!] No new findings.${NC}"
                     rm -f crt_results.tmp
                 fi
             fi
