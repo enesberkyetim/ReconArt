@@ -8,12 +8,14 @@ THREADS_HTTPX=50
 RATE_LIMIT_HTTPX=20
 BOT_TOKEN="$TELEGRAM_API_TOKEN"
 CHAT_ID="$TELEGRAM_CHAT_TOKEN"
-GREEN='\033[0,32m'
-RED='\033[0,31m'
-YELLOW='\033[1,33m'
-CYAN='\033[0,36m'
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
 NC='\033[0m'
 WHITE='\033[1;37m'
+
+
 
 if [[ -z "$BOT_TOKEN" || -z "$CHAT_ID" ]]; then
     echo -e "${RED}[!] Error: Telegram credentials not found in .bashrc!${NC}"
