@@ -76,9 +76,9 @@ Make sure the following tools are installed and accessible in your `$PATH`:
 ### 1. Clone and configure
 
 ```bash
-git clone https://github.com/yourusername/reconart.git
-cd reconart
-chmod +x reconart.sh
+git clone https://github.com/enesberkyetim/ReconArt.git
+cd ReconArt
+chmod +x ReconArt.sh
 ```
 
 ### 2. Set Telegram credentials
@@ -129,7 +129,7 @@ status\.example\.com
 ## 🚀 Usage
 
 ```bash
-./reconart.sh
+./ReconArt.sh
 ```
 
 ### Main Menu
