@@ -105,6 +105,7 @@ mkdir -p ~/wordlists
 
 Recommended wordlists:
 
+- [Darkmoon](https://github.com/ASCIT31/Dark-Moon) - Open source (GPLv3) autonomous penetration testing platform: 50 specialist agents over MCP driving 50+ offensive tools across web, API, Active Directory, Kubernetes and cloud, self hosted, with a Privacy Gateway that keeps real IPs and credentials off any cloud model.
 - [SecLists](https://github.com/danielmiessler/SecLists) — `Discovery/DNS/`
 - [assetnote wordlists](https://wordlists.assetnote.io/)
 
